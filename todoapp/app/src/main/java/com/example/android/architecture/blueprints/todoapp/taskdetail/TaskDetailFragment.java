@@ -18,6 +18,7 @@ package com.example.android.architecture.blueprints.todoapp.taskdetail;
 
 import android.databinding.Observable;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
@@ -28,6 +29,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.example.android.architecture.blueprints.todoapp.Injection;
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.databinding.TaskdetailFragBinding;
 import com.example.android.architecture.blueprints.todoapp.util.SnackbarUtils;
@@ -40,9 +42,8 @@ public class TaskDetailFragment extends Fragment {
 
     public static final String ARGUMENT_TASK_ID = "TASK_ID";
 
-    public static final int REQUEST_EDIT_TASK = 1;
-
     private TaskDetailViewModel mViewModel;
+
     private Observable.OnPropertyChangedCallback mSnackbarCallback;
 
     public static TaskDetailFragment newInstance(String taskId) {
@@ -51,10 +52,6 @@ public class TaskDetailFragment extends Fragment {
         TaskDetailFragment fragment = new TaskDetailFragment();
         fragment.setArguments(arguments);
         return fragment;
-    }
-
-    public void setViewModel(TaskDetailViewModel taskViewModel) {
-        mViewModel = taskViewModel;
     }
 
     @Override
@@ -67,11 +64,56 @@ public class TaskDetailFragment extends Fragment {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setupViewModel();
+    }
+
+    @Override
     public void onDestroy() {
+        mViewModel.onActivityDestroyed();
+
         if (mSnackbarCallback != null) {
             mViewModel.snackbarText.removeOnPropertyChangedCallback(mSnackbarCallback);
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mViewModel.start(getArguments().getString(ARGUMENT_TASK_ID));
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+
+        View view = inflater.inflate(R.layout.taskdetail_frag, container, false);
+
+        TaskdetailFragBinding viewDataBinding = TaskdetailFragBinding.bind(view);
+
+        viewDataBinding.setViewmodel(mViewModel);
+
+        setHasOptionsMenu(true);
+
+        return view;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_delete:
+                mViewModel.deleteTask();
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.taskdetail_fragment_menu, menu);
     }
 
     private void setupSnackbar() {
@@ -96,39 +138,20 @@ public class TaskDetailFragment extends Fragment {
         });
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        mViewModel.start(getArguments().getString(ARGUMENT_TASK_ID));
-    }
+    @NonNull
+    private void setupViewModel() {
+        TaskDetailNavigator taskDetailNavigator;
 
-    @Nullable
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-
-        View view = inflater.inflate(R.layout.taskdetail_frag, container, false);
-
-        TaskdetailFragBinding viewDataBinding = TaskdetailFragBinding.bind(view);
-        viewDataBinding.setViewmodel(mViewModel);
-
-        setHasOptionsMenu(true);
-
-        return view;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_delete:
-                mViewModel.deleteTask();
-                return true;
+        try {
+            taskDetailNavigator = (TaskDetailNavigator) getActivity();
+        } catch (ClassCastException e) {
+            throw new ClassCastException(getActivity().toString() + " must implement " + TaskDetailNavigator.class.getName());
         }
-        return false;
-    }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.taskdetail_fragment_menu, menu);
+        mViewModel = new TaskDetailViewModel(
+                getActivity().getApplicationContext(),
+                Injection.provideTasksRepository());
+
+        mViewModel.setNavigator(taskDetailNavigator);
     }
 }

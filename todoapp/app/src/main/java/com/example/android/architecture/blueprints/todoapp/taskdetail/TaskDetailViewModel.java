@@ -20,7 +20,7 @@ import android.content.Context;
 import android.support.annotation.Nullable;
 
 import com.example.android.architecture.blueprints.todoapp.TaskViewModel;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 import com.example.android.architecture.blueprints.todoapp.tasks.TasksFragment;
 
 

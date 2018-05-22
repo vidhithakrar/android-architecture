@@ -17,30 +17,25 @@
 package com.example.android.architecture.blueprints.todoapp.addedittask;
 
 import android.content.Context;
-import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
 import android.support.annotation.Nullable;
 
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 
 /**
  * ViewModel for the Add/Edit screen.
  * <p>
  * This ViewModel only exposes {@link ObservableField}s, so it doesn't need to extend
  * {@link android.databinding.BaseObservable} and updates are notified automatically. See
- * {@link com.example.android.architecture.blueprints.todoapp.statistics.StatisticsViewModel} for
  * how to deal with more complex scenarios.
  */
-public class AddEditTaskViewModel implements TasksDataSource.GetTaskCallback {
+public class AddEditTaskViewModel {
 
     public final ObservableField<String> title = new ObservableField<>();
 
     public final ObservableField<String> description = new ObservableField<>();
-
-    public final ObservableBoolean dataLoading = new ObservableBoolean(false);
 
     public final ObservableField<String> snackbarText = new ObservableField<>();
 
@@ -53,8 +48,6 @@ public class AddEditTaskViewModel implements TasksDataSource.GetTaskCallback {
 
     private boolean mIsNewTask;
 
-    private boolean mIsDataLoaded = false;
-
     private AddEditTaskNavigator mAddEditTaskNavigator;
 
     AddEditTaskViewModel(Context context, TasksRepository tasksRepository) {
@@ -62,7 +55,7 @@ public class AddEditTaskViewModel implements TasksDataSource.GetTaskCallback {
         mTasksRepository = tasksRepository;
     }
 
-    void onActivityCreated(AddEditTaskNavigator navigator) {
+    void setNavigator(AddEditTaskNavigator navigator) {
         mAddEditTaskNavigator = navigator;
     }
 
@@ -72,39 +65,18 @@ public class AddEditTaskViewModel implements TasksDataSource.GetTaskCallback {
     }
 
     public void start(String taskId) {
-        if (dataLoading.get()) {
-            // Already loading, ignore.
-            return;
-        }
         mTaskId = taskId;
         if (taskId == null) {
             // No need to populate, it's a new task
             mIsNewTask = true;
             return;
         }
-        if (mIsDataLoaded) {
-            // No need to populate, already have data.
-            return;
-        }
         mIsNewTask = false;
-        dataLoading.set(true);
-        mTasksRepository.getTask(taskId, this);
-    }
-
-    @Override
-    public void onTaskLoaded(Task task) {
-        title.set(task.getTitle());
-        description.set(task.getDescription());
-        dataLoading.set(false);
-        mIsDataLoaded = true;
-
-        // Note that there's no need to notify that the values changed because we're using
-        // ObservableFields.
-    }
-
-    @Override
-    public void onDataNotAvailable() {
-        dataLoading.set(false);
+        Task task = mTasksRepository.getTask(taskId);
+        if(task != null) {
+            title.set(task.getTitle());
+            description.set(task.getDescription());
+        }
     }
 
     // Called when clicking on fab.

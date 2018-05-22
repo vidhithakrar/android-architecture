@@ -24,15 +24,13 @@ import android.databinding.ObservableField;
 import android.support.annotation.Nullable;
 
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 
 
 /**
  * Abstract class for View Models that expose a single {@link Task}.
  */
-public abstract class TaskViewModel extends BaseObservable
-        implements TasksDataSource.GetTaskCallback {
+public abstract class TaskViewModel extends BaseObservable {
 
     public final ObservableField<String> snackbarText = new ObservableField<>();
 
@@ -45,8 +43,6 @@ public abstract class TaskViewModel extends BaseObservable
     private final TasksRepository mTasksRepository;
 
     private final Context mContext;
-
-    private boolean mIsDataLoading;
 
     public TaskViewModel(Context context, TasksRepository tasksRepository) {
         mContext = context.getApplicationContext(); // Force use of Application Context.
@@ -70,8 +66,14 @@ public abstract class TaskViewModel extends BaseObservable
 
     public void start(String taskId) {
         if (taskId != null) {
-            mIsDataLoading = true;
-            mTasksRepository.getTask(taskId, this);
+            Task task = mTasksRepository.getTask(taskId);
+            if (task != null) {
+                mTaskObservable.set(task);
+                notifyChange(); // For the @Bindable properties
+            } else {
+                mTaskObservable.set(null);
+            }
+
         }
     }
 
@@ -88,9 +90,6 @@ public abstract class TaskViewModel extends BaseObservable
     }
 
     public void setCompleted(boolean completed) {
-        if (mIsDataLoading) {
-            return;
-        }
         Task task = mTaskObservable.get();
 
         // Notify repository and user
@@ -108,10 +107,6 @@ public abstract class TaskViewModel extends BaseObservable
         return mTaskObservable.get() != null;
     }
 
-    @Bindable
-    public boolean isDataLoading() {
-        return mIsDataLoading;
-    }
 
     // This could be an observable, but we save a call to Task.getTitleForList() if not needed.
     @Bindable
@@ -122,28 +117,9 @@ public abstract class TaskViewModel extends BaseObservable
         return mTaskObservable.get().getTitleForList();
     }
 
-    @Override
-    public void onTaskLoaded(Task task) {
-        mTaskObservable.set(task);
-        mIsDataLoading = false;
-        notifyChange(); // For the @Bindable properties
-    }
-
-    @Override
-    public void onDataNotAvailable() {
-        mTaskObservable.set(null);
-        mIsDataLoading = false;
-    }
-
     public void deleteTask() {
         if (mTaskObservable.get() != null) {
             mTasksRepository.deleteTask(mTaskObservable.get().getId());
-        }
-    }
-
-    public void onRefresh() {
-        if (mTaskObservable.get() != null) {
-            start(mTaskObservable.get().getId());
         }
     }
 

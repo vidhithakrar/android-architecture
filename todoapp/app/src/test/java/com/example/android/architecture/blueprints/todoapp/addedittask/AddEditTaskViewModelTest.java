@@ -20,8 +20,7 @@ package com.example.android.architecture.blueprints.todoapp.addedittask;
 import android.content.Context;
 
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,13 +46,6 @@ public class AddEditTaskViewModelTest {
     @Mock
     private TasksRepository mTasksRepository;
 
-    /**
-     * {@link ArgumentCaptor} is a powerful Mockito API to capture argument values and use them to
-     * perform further actions or assertions on them.
-     */
-    @Captor
-    private ArgumentCaptor<TasksDataSource.GetTaskCallback> mGetTaskCallbackCaptor;
-
     private AddEditTaskViewModel mAddEditTaskViewModel;
 
     @Before
@@ -65,7 +57,7 @@ public class AddEditTaskViewModelTest {
         // Get a reference to the class under test
         mAddEditTaskViewModel = new AddEditTaskViewModel(
                 mock(Context.class), mTasksRepository);
-        mAddEditTaskViewModel.onActivityCreated(mock(AddEditTaskActivity.class));
+        mAddEditTaskViewModel.setNavigator(mock(AddEditTaskActivity.class));
     }
 
     @Test
@@ -86,17 +78,14 @@ public class AddEditTaskViewModelTest {
         // Get a reference to the class under test
         mAddEditTaskViewModel = new AddEditTaskViewModel(
                 mock(Context.class), mTasksRepository);
-        mAddEditTaskViewModel.onActivityCreated(mock(AddEditTaskActivity.class));
+        mAddEditTaskViewModel.setNavigator(mock(AddEditTaskActivity.class));
 
 
         // When the ViewModel is asked to populate an existing task
         mAddEditTaskViewModel.start(testTask.getId());
 
         // Then the task repository is queried and the view updated
-        verify(mTasksRepository).getTask(eq(testTask.getId()), mGetTaskCallbackCaptor.capture());
-
-        // Simulate callback
-        mGetTaskCallbackCaptor.getValue().onTaskLoaded(testTask);
+        verify(mTasksRepository).getTask(eq(testTask.getId()));
 
         // Verify the fields were updated
         assertThat(mAddEditTaskViewModel.title.get(), is(testTask.getTitle()));
@@ -108,7 +97,7 @@ public class AddEditTaskViewModelTest {
         // Get a reference to the class under test
         mAddEditTaskViewModel = new AddEditTaskViewModel(
                 mock(Context.class), mTasksRepository);
-        mAddEditTaskViewModel.onActivityCreated(mock(AddEditTaskActivity.class));
+        mAddEditTaskViewModel.setNavigator(mock(AddEditTaskActivity.class));
 
         // Before setting the Snackbar text, get its current value
         String snackbarText = mAddEditTaskViewModel.getSnackbarText();
@@ -122,7 +111,7 @@ public class AddEditTaskViewModelTest {
         // Get a reference to the class under test
         mAddEditTaskViewModel = new AddEditTaskViewModel(
                 mock(Context.class), mTasksRepository);
-        mAddEditTaskViewModel.onActivityCreated(mock(AddEditTaskActivity.class));
+        mAddEditTaskViewModel.setNavigator(mock(AddEditTaskActivity.class));
 
         // Set a new value for the Snackbar text via the public Observable
         mAddEditTaskViewModel.snackbarText.set(SNACKBAR_TEXT);

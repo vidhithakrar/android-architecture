@@ -16,9 +16,8 @@
 
 package com.example.android.architecture.blueprints.todoapp.data.source;
 
-import android.content.Context;
-
 import com.example.android.architecture.blueprints.todoapp.data.Task;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 import com.google.common.collect.Lists;
 
 import org.junit.After;
@@ -82,7 +81,7 @@ public class TasksRepositoryTest {
 
         // Get a reference to the class under test
         mTasksRepository = TasksRepository.getInstance(
-                mTasksRemoteDataSource, mTasksLocalDataSource);
+                mTasksLocalDataSource);
     }
 
     @After
@@ -103,7 +102,7 @@ public class TasksRepositoryTest {
     @Test
     public void getTasks_requestsAllTasksFromLocalDataSource() {
         // When tasks are requested from the tasks repository
-        mTasksRepository.getTasks(mLoadTasksCallback);
+        mTasksRepository.getTasks();
 
         // Then tasks are loaded from the local data source
         verify(mTasksLocalDataSource).getTasks(any(TasksDataSource.LoadTasksCallback.class));
@@ -262,7 +261,7 @@ public class TasksRepositoryTest {
     public void getTasksWithDirtyCache_tasksAreRetrievedFromRemote() {
         // When calling getTasks in the repository with dirty cache
         mTasksRepository.refreshTasks();
-        mTasksRepository.getTasks(mLoadTasksCallback);
+        mTasksRepository.getTasks();
 
         // And the remote data source has data available
         setTasksAvailable(mTasksRemoteDataSource, TASKS);
@@ -275,7 +274,7 @@ public class TasksRepositoryTest {
     @Test
     public void getTasksWithLocalDataSourceUnavailable_tasksAreRetrievedFromRemote() {
         // When calling getTasks in the repository
-        mTasksRepository.getTasks(mLoadTasksCallback);
+        mTasksRepository.getTasks();
 
         // And the local data source has no data available
         setTasksNotAvailable(mTasksLocalDataSource);
@@ -290,7 +289,7 @@ public class TasksRepositoryTest {
     @Test
     public void getTasksWithBothDataSourcesUnavailable_firesOnDataUnavailable() {
         // When calling getTasks in the repository
-        mTasksRepository.getTasks(mLoadTasksCallback);
+        mTasksRepository.getTasks();
 
         // And the local data source has no data available
         setTasksNotAvailable(mTasksLocalDataSource);
@@ -326,7 +325,7 @@ public class TasksRepositoryTest {
         mTasksRepository.refreshTasks();
 
         // When calling getTasks in the repository
-        mTasksRepository.getTasks(mLoadTasksCallback);
+        mTasksRepository.getTasks();
 
         // Make the remote data source return data
         setTasksAvailable(mTasksRemoteDataSource, TASKS);
@@ -340,7 +339,7 @@ public class TasksRepositoryTest {
      */
     private void twoTasksLoadCallsToRepository(TasksDataSource.LoadTasksCallback callback) {
         // When tasks are requested from repository
-        mTasksRepository.getTasks(callback); // First call to API
+        mTasksRepository.getTasks(); // First call to API
 
         // Use the Mockito Captor to capture the callback
         verify(mTasksLocalDataSource).getTasks(mTasksCallbackCaptor.capture());
@@ -355,7 +354,7 @@ public class TasksRepositoryTest {
         // Trigger callback so tasks are cached
         mTasksCallbackCaptor.getValue().onTasksLoaded(TASKS);
 
-        mTasksRepository.getTasks(callback); // Second call to API
+        mTasksRepository.getTasks(); // Second call to API
     }
 
     private void setTasksNotAvailable(TasksDataSource dataSource) {

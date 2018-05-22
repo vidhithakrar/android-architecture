@@ -30,13 +30,6 @@
 
     </data>
 
-<com.example.android.architecture.blueprints.todoapp.ScrollChildSwipeRefreshLayout
-    android:id="@+id/refresh_layout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:onRefresh="@{viewmodel}"
-    app:refreshing="@{viewmodel.dataLoading}">
-
     <RelativeLayout
         android:id="@+id/tasksContainer"
         android:layout_width="match_parent"
@@ -107,6 +100,5 @@
 
         </LinearLayout>
     </RelativeLayout>
-</com.example.android.architecture.blueprints.todoapp.ScrollChildSwipeRefreshLayout>
 </layout>
 

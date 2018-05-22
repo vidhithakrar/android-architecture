@@ -28,6 +28,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.example.android.architecture.blueprints.todoapp.Injection;
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.databinding.AddtaskFragBinding;
 import com.example.android.architecture.blueprints.todoapp.util.SnackbarUtils;
@@ -65,10 +66,6 @@ public class AddEditTaskFragment extends Fragment {
         }
     }
 
-    public void setViewModel(@NonNull AddEditTaskViewModel viewModel) {
-        mViewModel = checkNotNull(viewModel);
-    }
-
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -78,6 +75,12 @@ public class AddEditTaskFragment extends Fragment {
         setupSnackbar();
 
         setupActionBar();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setupViewModel();
     }
 
     @Nullable
@@ -99,10 +102,27 @@ public class AddEditTaskFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+        mViewModel.onActivityDestroyed();
         if (mSnackbarCallback != null) {
             mViewModel.snackbarText.removeOnPropertyChangedCallback(mSnackbarCallback);
         }
         super.onDestroy();
+    }
+
+    private void setupViewModel() {
+        AddEditTaskNavigator addEditTaskNavigator;
+
+        try {
+            addEditTaskNavigator = (AddEditTaskNavigator) getActivity();
+        } catch (ClassCastException e) {
+            throw new ClassCastException(getActivity().toString() + " must implement " + AddEditTaskNavigator.class.getName());
+        }
+
+        mViewModel = new AddEditTaskViewModel(
+                getActivity().getApplicationContext(),
+                Injection.provideTasksRepository());
+
+        mViewModel.setNavigator(addEditTaskNavigator);
     }
 
     private void setupSnackbar() {

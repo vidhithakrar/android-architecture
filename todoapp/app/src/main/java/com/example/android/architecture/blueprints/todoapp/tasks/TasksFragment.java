@@ -22,7 +22,6 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.PopupMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -35,9 +34,8 @@ import android.widget.ListView;
 
 import com.example.android.architecture.blueprints.todoapp.Injection;
 import com.example.android.architecture.blueprints.todoapp.R;
-import com.example.android.architecture.blueprints.todoapp.ScrollChildSwipeRefreshLayout;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 import com.example.android.architecture.blueprints.todoapp.databinding.TaskItemBinding;
 import com.example.android.architecture.blueprints.todoapp.databinding.TasksFragBinding;
 import com.example.android.architecture.blueprints.todoapp.util.SnackbarUtils;
@@ -98,9 +96,6 @@ public class TasksFragment extends Fragment {
             case R.id.menu_filter:
                 showFilteringPopUpMenu();
                 break;
-            case R.id.menu_refresh:
-                mTasksViewModel.loadTasks(true);
-                break;
         }
         return true;
     }
@@ -108,10 +103,6 @@ public class TasksFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.tasks_fragment_menu, menu);
-    }
-
-    public void setViewModel(TasksViewModel viewModel) {
-        mTasksViewModel = viewModel;
     }
 
     @Override
@@ -123,13 +114,12 @@ public class TasksFragment extends Fragment {
         setupFab();
 
         setupListAdapter();
-
-        setupRefreshLayout();
     }
 
     @Override
     public void onDestroy() {
         mListAdapter.onDestroy();
+        mTasksViewModel.onActivityDestroyed();
         if (mSnackbarCallback != null) {
             mTasksViewModel.snackbarText.removeOnPropertyChangedCallback(mSnackbarCallback);
         }
@@ -163,7 +153,7 @@ public class TasksFragment extends Fragment {
                         mTasksViewModel.setFiltering(TasksFilterType.ALL_TASKS);
                         break;
                 }
-                mTasksViewModel.loadTasks(false);
+                mTasksViewModel.loadTasks();
                 return true;
             }
         });
@@ -172,8 +162,7 @@ public class TasksFragment extends Fragment {
     }
 
     private void setupFab() {
-        FloatingActionButton fab =
-                (FloatingActionButton) getActivity().findViewById(R.id.fab_add_task);
+        FloatingActionButton fab = getActivity().findViewById(R.id.fab_add_task);
 
         fab.setImageResource(R.drawable.ic_add);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -185,31 +174,31 @@ public class TasksFragment extends Fragment {
     }
 
     private void setupListAdapter() {
-        ListView listView =  mTasksFragBinding.tasksList;
+        ListView listView = mTasksFragBinding.tasksList;
+        TaskItemNavigator taskItemNavigator;
+
+        try {
+            taskItemNavigator = (TaskItemNavigator) getActivity();
+        } catch (ClassCastException e) {
+            throw new ClassCastException(getActivity().toString() + " must implement " + TaskItemNavigator.class.getName());
+        }
 
         mListAdapter = new TasksAdapter(
                 new ArrayList<Task>(0),
-                (TasksActivity) getActivity(),
-                Injection.provideTasksRepository(getContext().getApplicationContext()),
+                taskItemNavigator,
+                Injection.provideTasksRepository(),
                 mTasksViewModel);
         listView.setAdapter(mListAdapter);
     }
 
-    private void setupRefreshLayout() {
-        ListView listView =  mTasksFragBinding.tasksList;
-        final ScrollChildSwipeRefreshLayout swipeRefreshLayout = mTasksFragBinding.refreshLayout;
-        swipeRefreshLayout.setColorSchemeColors(
-                ContextCompat.getColor(getActivity(), R.color.colorPrimary),
-                ContextCompat.getColor(getActivity(), R.color.colorAccent),
-                ContextCompat.getColor(getActivity(), R.color.colorPrimaryDark)
-        );
-        // Set the scrolling view in the custom SwipeRefreshLayout.
-        swipeRefreshLayout.setScrollUpChild(listView);
+    public void setViewModel(TasksViewModel viewModel) {
+        this.mTasksViewModel = viewModel;
     }
 
     public static class TasksAdapter extends BaseAdapter {
 
-        @Nullable private TaskItemNavigator mTaskItemNavigator;
+        @Nullable
+        private TaskItemNavigator mTaskItemNavigator;
 
         private final TasksViewModel mTasksViewModel;
 
@@ -217,7 +206,7 @@ public class TasksFragment extends Fragment {
 
         private TasksRepository mTasksRepository;
 
-        public TasksAdapter(List<Task> tasks, TasksActivity taskItemNavigator,
+        public TasksAdapter(List<Task> tasks, TaskItemNavigator taskItemNavigator,
                             TasksRepository tasksRepository,
                             TasksViewModel tasksViewModel) {
             mTaskItemNavigator = taskItemNavigator;
@@ -277,11 +266,11 @@ public class TasksFragment extends Fragment {
             // fragment's.
             viewmodel.snackbarText.addOnPropertyChangedCallback(
                     new Observable.OnPropertyChangedCallback() {
-                @Override
-                public void onPropertyChanged(Observable observable, int i) {
-                    mTasksViewModel.snackbarText.set(viewmodel.getSnackbarText());
-                }
-            });
+                        @Override
+                        public void onPropertyChanged(Observable observable, int i) {
+                            mTasksViewModel.snackbarText.set(viewmodel.getSnackbarText());
+                        }
+                    });
             viewmodel.setTask(task);
 
             return binding.getRoot();

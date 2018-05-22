@@ -29,10 +29,8 @@ import com.example.android.architecture.blueprints.todoapp.BR;
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTaskActivity;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 import com.example.android.architecture.blueprints.todoapp.taskdetail.TaskDetailActivity;
-import com.example.android.architecture.blueprints.todoapp.util.EspressoIdlingResource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +46,6 @@ public class TasksViewModel extends BaseObservable {
 
     // These observable fields will update Views automatically
     public final ObservableList<Task> items = new ObservableArrayList<>();
-
-    public final ObservableBoolean dataLoading = new ObservableBoolean(false);
 
     public final ObservableField<String> currentFilteringLabel = new ObservableField<>();
 
@@ -71,9 +67,7 @@ public class TasksViewModel extends BaseObservable {
 
     private TasksNavigator mNavigator;
 
-    public TasksViewModel(
-            TasksRepository repository,
-            Context context) {
+    public TasksViewModel(TasksRepository repository, Context context) {
         mContext = context.getApplicationContext(); // Force use of Application Context.
         mTasksRepository = repository;
 
@@ -91,7 +85,7 @@ public class TasksViewModel extends BaseObservable {
     }
 
     public void start() {
-        loadTasks(false);
+        loadTasks();
     }
 
     @Bindable
@@ -99,9 +93,6 @@ public class TasksViewModel extends BaseObservable {
         return items.isEmpty();
     }
 
-    public void loadTasks(boolean forceUpdate) {
-        loadTasks(forceUpdate, true);
-    }
 
     /**
      * Sets the current task filtering type.
@@ -142,7 +133,7 @@ public class TasksViewModel extends BaseObservable {
     public void clearCompletedTasks() {
         mTasksRepository.clearCompletedTasks();
         snackbarText.set(mContext.getString(R.string.completed_tasks_cleared));
-        loadTasks(false, false);
+        loadTasks();
     }
 
     public String getSnackbarText() {
@@ -156,6 +147,45 @@ public class TasksViewModel extends BaseObservable {
         if (mNavigator != null) {
             mNavigator.addNewTask();
         }
+    }
+
+    public void loadTasks() {
+        List<Task> tasks = mTasksRepository.getTasks();
+
+        List<Task> tasksToShow = new ArrayList<>();
+
+
+        if (tasks.isEmpty()) {
+            mIsDataLoadingError.set(true);
+        }
+
+        // We filter the tasks based on the requestType
+        for (Task task : tasks) {
+            switch (mCurrentFiltering) {
+                case ALL_TASKS:
+                    tasksToShow.add(task);
+                    break;
+                case ACTIVE_TASKS:
+                    if (task.isActive()) {
+                        tasksToShow.add(task);
+                    }
+                    break;
+                case COMPLETED_TASKS:
+                    if (task.isCompleted()) {
+                        tasksToShow.add(task);
+                    }
+                    break;
+                default:
+                    tasksToShow.add(task);
+                    break;
+            }
+        }
+
+        mIsDataLoadingError.set(false);
+
+        items.clear();
+        items.addAll(tasksToShow);
+        notifyPropertyChanged(BR.empty); // It's a @Bindable so update manually
     }
 
     void handleActivityResult(int requestCode, int resultCode) {
@@ -176,72 +206,4 @@ public class TasksViewModel extends BaseObservable {
             }
         }
     }
-
-    /**
-     * @param forceUpdate   Pass in true to refresh the data in the {@link TasksDataSource}
-     * @param showLoadingUI Pass in true to display a loading icon in the UI
-     */
-    private void loadTasks(boolean forceUpdate, final boolean showLoadingUI) {
-        if (showLoadingUI) {
-            dataLoading.set(true);
-        }
-        if (forceUpdate) {
-
-            mTasksRepository.refreshTasks();
-        }
-
-        // The network request might be handled in a different thread so make sure Espresso knows
-        // that the app is busy until the response is handled.
-        EspressoIdlingResource.increment(); // App is busy until further notice
-
-        mTasksRepository.getTasks(new TasksDataSource.LoadTasksCallback() {
-            @Override
-            public void onTasksLoaded(List<Task> tasks) {
-                List<Task> tasksToShow = new ArrayList<Task>();
-
-                // This callback may be called twice, once for the cache and once for loading
-                // the data from the server API, so we check before decrementing, otherwise
-                // it throws "Counter has been corrupted!" exception.
-                if (!EspressoIdlingResource.getIdlingResource().isIdleNow()) {
-                    EspressoIdlingResource.decrement(); // Set app as idle.
-                }
-
-                // We filter the tasks based on the requestType
-                for (Task task : tasks) {
-                    switch (mCurrentFiltering) {
-                        case ALL_TASKS:
-                            tasksToShow.add(task);
-                            break;
-                        case ACTIVE_TASKS:
-                            if (task.isActive()) {
-                                tasksToShow.add(task);
-                            }
-                            break;
-                        case COMPLETED_TASKS:
-                            if (task.isCompleted()) {
-                                tasksToShow.add(task);
-                            }
-                            break;
-                        default:
-                            tasksToShow.add(task);
-                            break;
-                    }
-                }
-                if (showLoadingUI) {
-                    dataLoading.set(false);
-                }
-                mIsDataLoadingError.set(false);
-
-                items.clear();
-                items.addAll(tasksToShow);
-                notifyPropertyChanged(BR.empty); // It's a @Bindable so update manually
-            }
-
-            @Override
-            public void onDataNotAvailable() {
-                mIsDataLoadingError.set(true);
-            }
-        });
-    }
-
 }

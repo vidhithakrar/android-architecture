@@ -23,7 +23,7 @@ import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.addedittask.AddEditTaskActivity;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksDataSource.LoadTasksCallback;
-import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
+import com.example.android.architecture.blueprints.todoapp.data.TasksRepository;
 import com.example.android.architecture.blueprints.todoapp.taskdetail.TaskDetailActivity;
 import com.google.common.collect.Lists;
 
@@ -104,10 +104,10 @@ public class TasksViewModelTest {
         // Given an initialized TasksViewModel with initialized tasks
         // When loading of Tasks is requested
         mTasksViewModel.setFiltering(TasksFilterType.ALL_TASKS);
-        mTasksViewModel.loadTasks(true);
+        mTasksViewModel.loadTasks();
 
         // Callback is captured and invoked with stubbed tasks
-        verify(mTasksRepository).getTasks(mLoadTasksCallbackCaptor.capture());
+        verify(mTasksRepository).getTasks();
 
 
         // Then progress indicator is shown
@@ -127,10 +127,10 @@ public class TasksViewModelTest {
         // Given an initialized TasksViewModel with initialized tasks
         // When loading of Tasks is requested
         mTasksViewModel.setFiltering(TasksFilterType.ACTIVE_TASKS);
-        mTasksViewModel.loadTasks(true);
+        mTasksViewModel.loadTasks();
 
         // Callback is captured and invoked with stubbed tasks
-        verify(mTasksRepository).getTasks(mLoadTasksCallbackCaptor.capture());
+        verify(mTasksRepository).getTasks();
         mLoadTasksCallbackCaptor.getValue().onTasksLoaded(TASKS);
 
         // Then progress indicator is hidden
@@ -146,10 +146,10 @@ public class TasksViewModelTest {
         // Given an initialized TasksViewModel with initialized tasks
         // When loading of Tasks is requested
         mTasksViewModel.setFiltering(TasksFilterType.COMPLETED_TASKS);
-        mTasksViewModel.loadTasks(true);
+        mTasksViewModel.loadTasks();
 
         // Callback is captured and invoked with stubbed tasks
-        verify(mTasksRepository).getTasks(mLoadTasksCallbackCaptor.capture());
+        verify(mTasksRepository).getTasks();
         mLoadTasksCallbackCaptor.getValue().onTasksLoaded(TASKS);
 
         // Then progress indicator is hidden
@@ -176,7 +176,7 @@ public class TasksViewModelTest {
 
         // Then repository is called and the view is notified
         verify(mTasksRepository).clearCompletedTasks();
-        verify(mTasksRepository).getTasks(any(LoadTasksCallback.class));
+        verify(mTasksRepository).getTasks();
     }
 
     @Test
